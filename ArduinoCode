@@ -1,8 +1,4 @@
-#define Onesec 1000
-#define HIGH 1
-#define LOW 0
-#define INPUT 0
-#define OUTPUT 1
+#include "Arduino.h"
 
 //define the pin numbers
 int P7 = 7; //pushbutton
@@ -25,101 +21,6 @@ void ClearMemory(){
   digitalWrite(P2, LOW);
   digitalWrite(P1, LOW);
   digitalWrite(P0, LOW);
-}
-
-void setup() {
-  //Powerup cycle
-  //initialize hardware
-  pinMode(P7, INPUT);
-  pinMode(P6, OUTPUT);
-  pinMode(P5, OUTPUT);
-  pinMode(P4, OUTPUT);
-  pinMode(P3, OUTPUT);
-  pinMode(P2, OUTPUT);
-  pinMode(P1, OUTPUT);
-  pinMode(P0, OUTPUT);
-  
-  //check I/O module configuration
-  //initialize memory
-  ClearMemory();
-}
-
-void loop()
-{
-  //Update input
-  int P7 = digitalRead(7);
-  //Update remote I/O
-  //CPU bus comms
-  //Update clock
-  //Check if in run mode
-  
-  //Main function
-  if (P7==HIGH){
-    DiceRoll();
-  }
-  else
-  {
-    ClearMemory();
-  }
-
-  //diagnostics checking
-  //write errors
-  //write fatal errors
-  //Force out of run mode if necessary
-}
-
-//used to generate a random number between LowVal and HighVal
-int rand(int LowVal, int HighVal)
-{
-    unsigned long result = (millis() % (HighVal-LowVal)) + LowVal;
-    return (int)result;
-}
-
-void DiceRoll(){
-  //Rolls the dice. Changes the the output to give the appearence of a dice roll
-  //gets slower giving the appearance it is slowing down
-  //stops with final output value
-  int i;
-  int iDur = 1000; //milliseconds
-  int MyDelay = 10;//milliseconds; Delays per flip
-  int Flips = iDur / MyDelay;
-
-  //We now have to allocate some time for the slowdown by shaving time away from the first 80% and adding it to the last 20%
-  int slowBy = 50;//milliseconds; additional time for last flip. i.e. if 1000, the last flip takes an extra second per flip
-  
-  int FirstFlips = Flips*80/100; //number of flips for the 80% before we ramp up
-  int SecondFlips = Flips - FirstFlips; //remaining flips
-  int shaveOff = (SecondFlips)*slowBy/2; //time we need to shave off the FirstFlips. Used the area of a triangle formula
-  int slowInc;
-  int num;
-  
-  //Not enough time avaliable to shave off
-  if (shaveOff >= FirstFlips*MyDelay){
-    //abort to nothing
-    FirstFlips = Flips;
-    slowInc = 0;
-  }
-  else{
-    MyDelay = (FirstFlips*MyDelay - shaveOff) / (FirstFlips);
-    slowInc = slowBy / SecondFlips; //how much to increment per flip for the second part
-  }
-
-  //Execute the flip-time profile
-  for (i=0; i<Flips; i++){
-    num = rand(1, 6);
-    DisplayDice(num);
-    
-    if (i > FirstFlips){
-      MyDelay += slowInc;
-      delay(MyDelay);
-    }
-    else{
-      delay(MyDelay);
-    }
-  }
-
-  delay(2000);
-  ClearMemory;
 }
 
 void DisplayDice(int Value){
@@ -196,4 +97,106 @@ void DisplayDice(int Value){
     digitalWrite(P0, LOW);
     break;
   }
+}
+
+//used to generate a random number between LowVal and HighVal
+int rand(int LowVal, int HighVal)
+{
+    unsigned long result = (millis() % (HighVal-LowVal)) + LowVal;
+    return (int)result;
+}
+
+void DiceRoll(unsigned int iDur, unsigned int MyDelay,  unsigned int slowBy){
+  //Rolls the dice. Changes the the output to give the appearence of a dice roll
+  //gets slower giving the appearance it is slowing down
+  //stops with final output value
+  unsigned int Flips;
+  unsigned int i;
+  unsigned int FirstFlips;
+  unsigned int SecondFlips;
+  unsigned int shaveOff;
+  unsigned int slowInc;
+  unsigned int num;
+
+  //iDur = 10000; //milliseconds
+  //MyDelay = 10;//milliseconds; Delays per flip
+  //slowBy = 1000;//milliseconds; additional time for last flip. i.e. if 1000, the last flip takes an extra second per flip
+
+  //Programmer-bounding
+  if (iDur>10000){
+    iDur = 10000;
+  }
+  if (MyDelay > iDur){
+    MyDelay = iDur;
+  }
+  if (slowBy >= 8*MyDelay){
+    slowBy = 8*MyDelay;
+  }
+
+  Flips = iDur / MyDelay;
+  //We now have to allocate some time for the slowdown by shaving time away from the first 80% and adding it to the last 20%
+  FirstFlips = Flips*80/100; //number of flips for the 80% before we ramp up
+  SecondFlips = Flips - FirstFlips; //remaining flips
+  shaveOff = (SecondFlips)*slowBy/2; //time we need to shave off the FirstFlips. Used the area of a triangle formula
+  MyDelay = (FirstFlips*MyDelay - shaveOff) / (FirstFlips);
+  slowInc = slowBy / SecondFlips; //how much to increment per flip for the second part
+
+
+  //Execute the flip-time profile
+  for (i=0; i<Flips; i++){
+    num = rand(1, 6);
+    DisplayDice(num);
+
+    if (i > FirstFlips){
+      MyDelay += slowInc;
+      delay(MyDelay);
+    }
+    else{
+      delay(MyDelay);
+    }
+  }
+
+  delay(1000);
+  ClearMemory();
+}
+
+void setup() {
+  //Powerup cycle
+  //initialize hardware
+  pinMode(P7, INPUT);
+  pinMode(P6, OUTPUT);
+  pinMode(P5, OUTPUT);
+  pinMode(P4, OUTPUT);
+  pinMode(P3, OUTPUT);
+  pinMode(P2, OUTPUT);
+  pinMode(P1, OUTPUT);
+  pinMode(P0, OUTPUT);
+
+  //check I/O module configuration
+  //initialize memory
+  ClearMemory();
+}
+
+void loop()
+{
+  //Update input
+  int P7 = digitalRead(7);
+  //Update remote I/O
+  //CPU bus comms
+  //Update clock
+  //Check if in run mode
+
+  //Main function
+  if (P7==HIGH){
+    DiceRoll(2000,10,250);
+  }
+  else
+  {
+    ClearMemory();
+  }
+
+  //diagnostics checking
+  //write errors
+  //write fatal errors
+  //Force out of run mode if necessary
 }
