@@ -1,7 +1,7 @@
 //A bill of materials to build this project
 //NOTE: All components can be found with in the Mega 2560 r3 DIY Kit, Otherwise you can just use the BOM below
-qty,Description
-1,Arduino Mega 2560
-1,pushbutton
+qty, Description
+1, Arduino Mega 2560
+1, pushbutton
 7, 10k resistor 1/4 Watt
 7, LED any color
